@@ -1,1 +1,915 @@
-hi
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지구 자전 시뮬레이션</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4A90E2;
+            --bg: #F5F7FA;
+            --panel-bg: #FFFFFF;
+            --text: #333333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-family: 'Jua', sans-serif;
+            font-size: 2.5rem;
+            color: var(--primary);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .simulation-container {
+            width: 100%;
+            max-width: 1200px;
+            background: var(--panel-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 20px;
+        }
+
+        /* 공통 패널 스타일 */
+        .panel {
+            background: #eef2f5;
+            border-radius: 15px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .panel h2 {
+            font-family: 'Jua', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .view-box {
+            width: 100%;
+            height: 400px;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* === 우주 시점 (Space View) === */
+        .space-view {
+            background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 별 배경 */
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 50px 160px, #ddd, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 90px 40px, #fff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 130px 80px, #fff, rgba(0,0,0,0));
+            background-repeat: repeat;
+            background-size: 200px 200px;
+            opacity: 0.5;
+        }
+
+        .sun-space {
+            position: absolute;
+            left: -80px; /* 왼쪽에 태양 배치 */
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, #fff3a1 0%, #ffcc00 40%, #ff9900 80%);
+            border-radius: 50%;
+            box-shadow: 0 0 100px #ffcc00, 0 0 200px #ff9900;
+        }
+
+        .sun-label {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            color: #ffcc00;
+            font-family: 'Jua', sans-serif;
+            font-size: 1.5rem;
+            text-shadow: 0 0 5px black;
+        }
+
+        .earth-container {
+            position: absolute;
+            right: 80px; /* 오른쪽에 지구 배치 */
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+        }
+
+        .earth-map {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: #2b5f8c;
+            /* 지구 무늬 (북극 중심) */
+            background-image: 
+                radial-gradient(circle at 50% 50%, #f0f8ff 0%, #f0f8ff 15%, transparent 16%),
+                radial-gradient(ellipse at 30% 30%, #4d8c2b 0%, #4d8c2b 20%, transparent 21%),
+                radial-gradient(ellipse at 70% 70%, #4d8c2b 0%, #4d8c2b 25%, transparent 26%);
+            box-shadow: inset -20px -20px 40px rgba(0,0,0,0.5);
+            transition: transform 0.1s linear;
+        }
+
+        .person-wrapper {
+            position: absolute;
+            top: 50%;
+            right: 0; /* 지구의 오른쪽 끝 (자정 위치) 에서 시작 */
+            width: 50%;
+            height: 2px;
+            transform-origin: left center;
+        }
+
+        .person-marker {
+            position: absolute;
+            right: -15px;
+            top: -15px;
+            font-size: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .person-label {
+            font-size: 12px;
+            background: white;
+            color: black;
+            padding: 2px 5px;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            white-space: nowrap;
+        }
+
+        .direction-label {
+            position: absolute;
+            font-size: 12px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        /* 우주 시점에서 사람 기준의 방위표시 */
+        .dir-south { right: -40px; top: -5px; } /* 밖으로 향함 */
+        .dir-east { right: 5px; top: -35px; }  /* 자전 방향 (위쪽) */
+        .dir-west { right: 5px; top: 25px; }   /* 자전 반대 방향 (아래쪽) */
+
+        .earth-shadow {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 50%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            border-radius: 0 100px 100px 0; /* 오른쪽 반원 그림자 */
+            pointer-events: none; /* 클릭 방지 */
+        }
+
+        /* === 지구 시점 (Earth View) === */
+        .earth-view {
+            background-color: #87CEEB;
+        }
+
+        .sky-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transition: opacity 0.3s ease;
+        }
+
+        #sky-day { background: linear-gradient(to bottom, #4ca1af, #c4e0e5); }
+        #sky-sunset { background: linear-gradient(to bottom, #20124d, #ff512f, #f09819); opacity: 0; }
+        #sky-night { background: linear-gradient(to bottom, #020111, #20124d); opacity: 0; }
+
+        .sky-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .ground-view {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            background: linear-gradient(to bottom, #2d6a4f, #1b4332);
+            border-top: 2px solid #40916c;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .observer-earth {
+            font-size: 60px;
+            margin-bottom: -10px;
+            z-index: 10;
+            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5));
+        }
+
+        .compass-bar {
+            position: absolute;
+            bottom: 10px;
+            width: 90%;
+            display: flex;
+            justify-content: space-between;
+            color: white;
+            font-family: 'Jua', sans-serif;
+            font-size: 1.2rem;
+            text-shadow: 1px 1px 3px black;
+            padding: 0 20px;
+        }
+
+        /* === 하단 컨트롤 (Slider) === */
+        .control-panel {
+            grid-column: 1 / -1; /* 전체 너비 사용 */
+            background: #fff;
+            border-radius: 15px;
+            padding: 20px 40px;
+            text-align: center;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+            border: 2px solid #eef2f5;
+        }
+
+        .time-display {
+            font-family: 'Jua', sans-serif;
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+            margin-bottom: 15px;
+        }
+
+        input[type=range]:focus {
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 15px;
+            cursor: pointer;
+            background: linear-gradient(90deg, #2c3e50 0%, #f1c40f 25%, #3498db 50%, #e67e22 75%, #2c3e50 100%);
+            border-radius: 10px;
+            border: 1px solid #ccc;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            height: 40px;
+            width: 40px;
+            border-radius: 50%;
+            background: #fff;
+            border: 4px solid var(--primary);
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        .time-labels {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'Noto Sans KR', sans-serif;
+            font-weight: bold;
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        /* 설명 영역 */
+        .explanation {
+            grid-column: 1 / -1;
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: #856404;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+
+        /* === 퀴즈 섹션 스타일 === */
+        .quiz-section {
+            grid-column: 1 / -1;
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 28px;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .quiz-title {
+            font-family: 'Jua', sans-serif;
+            font-size: 1.8rem;
+            color: #2b6cb0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .quiz-subtitle {
+            color: #64748b;
+            font-size: 1rem;
+            margin-bottom: 24px;
+        }
+
+        .quiz-card {
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 20px 22px;
+            margin-bottom: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .quiz-card.correct {
+            border-color: #38a169;
+            background-color: #f0fff4;
+        }
+
+        .quiz-card.incorrect {
+            border-color: #e53e3e;
+            background-color: #fff5f5;
+        }
+
+        .question-text {
+            font-family: 'Jua', sans-serif;
+            font-size: 1.25rem;
+            color: #1e293b;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .radio-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            padding: 10px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 1.05rem;
+            user-select: none;
+            transition: all 0.2s ease;
+        }
+
+        .radio-option:hover {
+            border-color: #4a90e2;
+            background: #f0f7ff;
+        }
+
+        .radio-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #3182ce;
+        }
+
+        .quiz-input {
+            width: 100%;
+            max-width: 480px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: 1.5px solid #cbd5e1;
+            font-size: 1.05rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+            background-color: #ffffff;
+        }
+
+        .quiz-input:focus {
+            border-color: #3182ce;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15);
+        }
+
+        .input-hint {
+            font-size: 0.88rem;
+            color: #64748b;
+            margin-top: 6px;
+        }
+
+        .feedback-msg {
+            margin-top: 12px;
+            font-weight: bold;
+            font-size: 0.98rem;
+            display: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            line-height: 1.45;
+        }
+
+        .feedback-msg.correct {
+            display: block;
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .feedback-msg.incorrect {
+            display: block;
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .quiz-btn-container {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            margin-top: 25px;
+        }
+
+        .quiz-btn {
+            font-family: 'Jua', sans-serif;
+            font-size: 1.3rem;
+            padding: 12px 36px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+
+        .quiz-btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #3182ce, #2b6cb0);
+            color: white;
+            box-shadow: 0 4px 12px rgba(49, 130, 206, 0.35);
+        }
+
+        .btn-submit:hover {
+            box-shadow: 0 6px 16px rgba(49, 130, 206, 0.45);
+        }
+
+        .btn-reset {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .btn-reset:hover {
+            background: #cbd5e1;
+        }
+
+        .score-banner {
+            display: none;
+            background: #ebf8ff;
+            border: 2px solid #bee3f8;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            margin-top: 20px;
+            font-family: 'Jua', sans-serif;
+            font-size: 1.4rem;
+            color: #2b6cb0;
+        }
+
+        @media (max-width: 900px) {
+            .simulation-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🌍 뱅글뱅글~ 지구 자전과 낮밤 시뮬레이션 ☀️</h1>
+    </header>
+
+    <div class="simulation-container">
+        
+        <!-- 왼쪽: 우주 시점 -->
+        <div class="panel">
+            <h2>🚀 우주에서 본 지구 (북극 위)</h2>
+            <div class="view-box space-view">
+                <div class="stars"></div>
+                <div class="sun-label">☀️ 태양</div>
+                <div class="sun-space"></div>
+                
+                <div class="earth-container">
+                    <!-- 회전하는 지구 맵 (관찰자 포함) -->
+                    <div class="earth-map" id="earth-map">
+                        <div class="person-wrapper">
+                            <div class="person-marker" id="space-person">
+                                <div class="person-label">관찰자</div>
+                                🧍
+                            </div>
+                            <div class="direction-label dir-south" id="dir-s">남</div>
+                            <div class="direction-label dir-east" id="dir-e">동</div>
+                            <div class="direction-label dir-west" id="dir-w">서</div>
+                        </div>
+                    </div>
+                    <!-- 태양빛을 받지 못하는 밤 그림자 (고정) -->
+                    <div class="earth-shadow"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 오른쪽: 지구 시점 -->
+        <div class="panel">
+            <h2>🏞️ 지구에서 본 남쪽 하늘</h2>
+            <div class="view-box earth-view">
+                <!-- 하늘 배경 레이어 -->
+                <div class="sky-layer" id="sky-day"></div>
+                <div class="sky-layer" id="sky-sunset"></div>
+                <div class="sky-layer" id="sky-night"><div class="stars"></div></div>
+
+                <!-- 태양 및 궤도 SVG -->
+                <svg viewBox="0 0 1000 500" class="sky-svg">
+                    <!-- 태양 이동 궤적 (가이드선) -->
+                    <path d="M 100 400 Q 500 -200 900 400" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="3" stroke-dasharray="15,15" />
+                    
+                    <!-- 태양 필터 -->
+                    <defs>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    
+                    <!-- 태양 객체 -->
+                    <circle id="sun-earth" cx="100" cy="400" r="45" fill="#ffcc00" filter="url(#glow)"/>
+                </svg>
+
+                <!-- 땅 및 관찰자 -->
+                <div class="ground-view">
+                    <div class="observer-earth">🧍</div>
+                    <div class="compass-bar">
+                        <span>⬅️ 동 (East)</span>
+                        <span>남 (South) ⬇️</span>
+                        <span>서 (West) ➡️</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 하단: 슬라이더 컨트롤 -->
+        <div class="control-panel">
+            <div class="time-display">
+                🕒 현재 시간: <span id="time-text">12:00</span>
+            </div>
+            <input type="range" id="time-slider" min="0" max="24" step="0.1" value="12">
+            <div class="time-labels">
+                <span>자정 (밤 12시)</span>
+                <span>아침 (6시)</span>
+                <span>정오 (낮 12시)</span>
+                <span>저녁 (6시)</span>
+                <span>자정 (밤 12시)</span>
+            </div>
+        </div>
+
+        <!-- 학습 가이드 -->
+        <div class="explanation">
+            <strong>💡 탐구해 보아요!</strong><br>
+            슬라이더를 움직여 시간을 변화시켜 보세요. 우주에서 지구가 <b>서쪽에서 동쪽(반시계 방향)</b>으로 자전함에 따라, 관찰자가 태양을 보게 되는 각도가 변합니다. 그 결과 지구(땅)에서는 태양이 <b>동쪽에서 떠서 서쪽으로 지는 것</b>처럼 보이게 됩니다!
+        </div>
+
+        <!-- 퀴즈 섹션 -->
+        <section class="quiz-section">
+            <h2 class="quiz-title">📝 시뮬레이션 탐구 퀴즈</h2>
+            <p class="quiz-subtitle">위의 시뮬레이션을 관찰하고 질문에 답해 보세요!</p>
+
+            <!-- 1번 문제 -->
+            <div class="quiz-card" id="card-q1">
+                <div class="question-text">
+                    <span>1.</span> 지구에서 봤을 때 태양은 어느 방향에서 뜨나요?
+                </div>
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" name="q1" value="동"> ① 동쪽
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="q1" value="서"> ② 서쪽
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="q1" value="남"> ③ 남쪽
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="q1" value="북"> ④ 북쪽
+                    </label>
+                </div>
+                <div class="feedback-msg" id="feedback-q1"></div>
+            </div>
+
+            <!-- 2번 문제 -->
+            <div class="quiz-card" id="card-q2">
+                <div class="question-text">
+                    <span>2.</span> 지구에서 봤을 때 태양은 어느 방향에서 지나요?
+                </div>
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" name="q2" value="동"> ① 동쪽
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="q2" value="서"> ② 서쪽
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="q2" value="남"> ③ 남쪽
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="q2" value="북"> ④ 북쪽
+                    </label>
+                </div>
+                <div class="feedback-msg" id="feedback-q2"></div>
+            </div>
+
+            <!-- 3번 문제 -->
+            <div class="quiz-card" id="card-q3">
+                <div class="question-text">
+                    <span>3.</span> 태양이 가장 높이 뜬 시간은 언제인가요?
+                </div>
+                <input type="text" class="quiz-input" id="input-q3" placeholder="예: 낮 12시, 정오, 12시 등">
+                <div class="input-hint">💡 힌트: 시뮬레이션에서 태양이 남쪽 하늘 가장 높은 곳에 있을 때의 시간을 적어보세요.</div>
+                <div class="feedback-msg" id="feedback-q3"></div>
+            </div>
+
+            <!-- 4번 문제 -->
+            <div class="quiz-card" id="card-q4">
+                <div class="question-text">
+                    <span>4.</span> 밤에 태양이 보이지 않는 이유는 무엇일까요?
+                </div>
+                <input type="text" class="quiz-input" id="input-q4" placeholder="지구의 움직임이나 관찰자의 위치와 관련지어 적어보세요">
+                <div class="input-hint">💡 힌트: 지구가 스스로 도는 것(자전)과 우주 시점의 그림자를 생각해보세요.</div>
+                <div class="feedback-msg" id="feedback-q4"></div>
+            </div>
+
+            <!-- 채점 배너 -->
+            <div class="score-banner" id="score-banner"></div>
+
+            <!-- 버튼 영역 -->
+            <div class="quiz-btn-container">
+                <button type="button" class="quiz-btn btn-submit" id="btn-submit-quiz">제출하기 ✨</button>
+                <button type="button" class="quiz-btn btn-reset" id="btn-reset-quiz">다시 풀기 🔄</button>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        // DOM 요소 가져오기
+        const timeSlider = document.getElementById('time-slider');
+        const timeText = document.getElementById('time-text');
+        
+        const earthMap = document.getElementById('earth-map');
+        const spacePerson = document.getElementById('space-person');
+        const dirS = document.getElementById('dir-s');
+        const dirE = document.getElementById('dir-e');
+        const dirW = document.getElementById('dir-w');
+        
+        const sunEarth = document.getElementById('sun-earth');
+        
+        const skyDay = document.getElementById('sky-day');
+        const skySunset = document.getElementById('sky-sunset');
+        const skyNight = document.getElementById('sky-night');
+
+        function updateSimulation() {
+            const time = parseFloat(timeSlider.value);
+            
+            // 1. 시간 텍스트 업데이트 (00:00 형식)
+            let hours = Math.floor(time);
+            let mins = Math.floor((time - hours) * 60);
+            if(hours === 24) { hours = 0; mins = 0; } // 24시는 00시로 표기
+            timeText.innerText = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+
+            // 2. 우주 시점: 지구 자전 업데이트
+            // 시간 0(자정): 관찰자는 태양 반대편(오른쪽 끝, 0도 위치)
+            // 지구는 반시계 방향으로 회전하므로 CSS에서는 음수(-) 각도 적용
+            // 24시간 = 360도 회전
+            const angle = -(time / 24) * 360; 
+            earthMap.style.transform = `rotate(${angle}deg)`;
+
+            // 관찰자 아이콘이 뒤집히지 않도록 역회전 보정
+            const counterAngle = -angle;
+            spacePerson.style.transform = `rotate(${counterAngle}deg)`;
+            dirS.style.transform = `rotate(${counterAngle}deg)`;
+            dirE.style.transform = `rotate(${counterAngle}deg)`;
+            dirW.style.transform = `rotate(${counterAngle}deg)`;
+
+            // 3. 지구 시점: 태양의 위치(베지에 곡선) 계산
+            // 아침 6시(t=0) ~ 저녁 18시(t=1) 기준으로 곡선 이동
+            const t = (time - 6) / 12; 
+            
+            // 곡선 제어점 설정 (svg 1000x500 뷰포트 기준)
+            const x0 = 100, y0 = 400;   // 동쪽 (일출)
+            const x1 = 500, y1 = -200;  // 남쪽 하늘 높이 (정오)
+            const x2 = 900, y2 = 400;   // 서쪽 (일몰)
+
+            // 2차 베지에 곡선(Quadratic Bezier Curve) 공식
+            const x = Math.pow(1 - t, 2) * x0 + 2 * (1 - t) * t * x1 + Math.pow(t, 2) * x2;
+            const y = Math.pow(1 - t, 2) * y0 + 2 * (1 - t) * t * y1 + Math.pow(t, 2) * y2;
+
+            sunEarth.setAttribute('cx', x);
+            sunEarth.setAttribute('cy', y);
+
+            // 4. 지구 시점: 하늘 색상 변화
+            let nightOp = 0, sunsetOp = 0, dayOp = 0;
+
+            if (time >= 0 && time < 4) { 
+                nightOp = 1; 
+            } else if (time >= 4 && time < 7) {
+                // 새벽 일출 (4시~7시)
+                const p = (time - 4) / 3;
+                nightOp = 1 - p; 
+                sunsetOp = Math.sin(p * Math.PI); // 일출 노을 강조
+                dayOp = p;
+            } else if (time >= 7 && time < 16) { 
+                // 낮
+                dayOp = 1; 
+            } else if (time >= 16 && time < 19) {
+                // 일몰 노을 (16시~19시)
+                const p = (time - 16) / 3;
+                dayOp = 1 - p;
+                sunsetOp = Math.sin(p * Math.PI);
+                nightOp = p;
+            } else { 
+                // 밤
+                nightOp = 1; 
+            }
+
+            skyDay.style.opacity = dayOp;
+        skySunset.style.opacity = sunsetOp;
+        skyNight.style.opacity = nightOp;
+    }
+
+    // 퀴즈 관련 로직
+    const btnSubmitQuiz = document.getElementById('btn-submit-quiz');
+    const btnResetQuiz = document.getElementById('btn-reset-quiz');
+    const scoreBanner = document.getElementById('score-banner');
+
+    function checkQuiz() {
+        let score = 0;
+        const total = 4;
+
+        // 1번 채점 (정답: 동)
+        const q1Selected = document.querySelector('input[name="q1"]:checked');
+        const cardQ1 = document.getElementById('card-q1');
+        const feedbackQ1 = document.getElementById('feedback-q1');
+
+        if (q1Selected && q1Selected.value === '동') {
+            cardQ1.className = 'quiz-card correct';
+            feedbackQ1.className = 'feedback-msg correct';
+            feedbackQ1.innerHTML = '🎉 <b>정답입니다!</b> 아침 6시경 동쪽 지평선에서 태양이 떠오릅니다.';
+            score++;
+        } else {
+            cardQ1.className = 'quiz-card incorrect';
+            feedbackQ1.className = 'feedback-msg incorrect';
+            feedbackQ1.innerHTML = '❌ <b>다시 생각해 보세요.</b> 지구에서 남쪽을 볼 때 왼쪽인 동쪽에서 태양이 떠오릅니다.';
+        }
+
+        // 2번 채점 (정답: 서)
+        const q2Selected = document.querySelector('input[name="q2"]:checked');
+        const cardQ2 = document.getElementById('card-q2');
+        const feedbackQ2 = document.getElementById('feedback-q2');
+
+        if (q2Selected && q2Selected.value === '서') {
+            cardQ2.className = 'quiz-card correct';
+            feedbackQ2.className = 'feedback-msg correct';
+            feedbackQ2.innerHTML = '🎉 <b>정답입니다!</b> 저녁 18시경 서쪽 지평선 너머로 태양이 집니다.';
+            score++;
+        } else {
+            cardQ2.className = 'quiz-card incorrect';
+            feedbackQ2.className = 'feedback-msg incorrect';
+            feedbackQ2.innerHTML = '❌ <b>다시 생각해 보세요.</b> 태양은 오른쪽 방향인 서쪽으로 지게 됩니다.';
+        }
+
+        // 3번 채점 (정답: 12시, 12, 정오, 낮12시 등)
+        const ans3 = document.getElementById('input-q3').value.trim().toLowerCase().replace(/\s+/g, '');
+        const cardQ3 = document.getElementById('card-q3');
+        const feedbackQ3 = document.getElementById('feedback-q3');
+
+        const validAnswersQ3 = ['12시', '12', '낮12시', '정오', '12:00', '12시정각', '낮열두시', '열두시'];
+        const isQ3Correct = validAnswersQ3.some(ans => ans3.includes(ans) || ans3 === ans);
+
+        if (isQ3Correct) {
+            cardQ3.className = 'quiz-card correct';
+            feedbackQ3.className = 'feedback-msg correct';
+            feedbackQ3.innerHTML = '🎉 <b>정답입니다!</b> 낮 12시(정오)에 태양이 남쪽 하늘 가장 높은 곳에 위치합니다.';
+            score++;
+        } else {
+            cardQ3.className = 'quiz-card incorrect';
+            feedbackQ3.className = 'feedback-msg incorrect';
+            feedbackQ3.innerHTML = '❌ <b>다시 확인해 보세요.</b> 시뮬레이션 슬라이더를 12시로 맞추고 하늘을 살펴보세요! (정답: 낮 12시 또는 정오)';
+        }
+
+        // 4번 채점 (키워드: 자전, 돌아서, 반대, 그림자, 햇빛 등)
+        const ans4 = document.getElementById('input-q4').value.trim();
+        const cardQ4 = document.getElementById('card-q4');
+        const feedbackQ4 = document.getElementById('feedback-q4');
+
+        const keywordsQ4 = ['자전', '돌', '반대', '등', '그림자', '뒤', '햇빛', '빛을못', '가려'];
+        const hasKeyword = keywordsQ4.some(kw => ans4.includes(kw));
+
+        if (ans4.length >= 2 && hasKeyword) {
+            cardQ4.className = 'quiz-card correct';
+            feedbackQ4.className = 'feedback-msg correct';
+            feedbackQ4.innerHTML = '🎉 <b>훌륭한 설명입니다!</b> 지구가 자전하여 우리가 서 있는 곳이 태양 반대편(지구의 그림자 쪽)을 향하게 되기 때문입니다.';
+            score++;
+        } else {
+            cardQ4.className = 'quiz-card incorrect';
+            feedbackQ4.className = 'feedback-msg incorrect';
+            feedbackQ4.innerHTML = '💡 <b>조금 더 생각해볼까요?</b> 지구가 <b>스스로 돌기(자전)</b> 때문에 우리가 사는 곳이 태양의 반대편(그림자 영역)으로 돌아가기 때문입니다.';
+        }
+
+        // 전체 점수 배너 표시
+        scoreBanner.style.display = 'block';
+        scoreBanner.innerHTML = `총 <b>${total}문제 중 ${score}문제</b> 맞혔어요! 🌟 ` +
+            (score === 4 ? '완벽해요! 지구 자전 박사님이시네요! 🎓' : '시뮬레이션을 조금 더 탐구해보면 다 맞힐 수 있어요! 파이팅 💪');
+        scoreBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function resetQuiz() {
+        document.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
+        document.getElementById('input-q3').value = '';
+        document.getElementById('input-q4').value = '';
+
+        for (let i = 1; i <= 4; i++) {
+            const card = document.getElementById(`card-q${i}`);
+            const feedback = document.getElementById(`feedback-q${i}`);
+            card.className = 'quiz-card';
+            feedback.className = 'feedback-msg';
+            feedback.style.display = 'none';
+            feedback.innerHTML = '';
+        }
+
+        scoreBanner.style.display = 'none';
+        scoreBanner.innerHTML = '';
+    }
+
+    btnSubmitQuiz.addEventListener('click', checkQuiz);
+    btnResetQuiz.addEventListener('click', resetQuiz);
+
+    // 이벤트 리스너 등록 및 초기화
+    timeSlider.addEventListener('input', updateSimulation);
+    updateSimulation(); // 첫 로딩 시 화면 업데이트
+</script>
+</body>
+</html>
