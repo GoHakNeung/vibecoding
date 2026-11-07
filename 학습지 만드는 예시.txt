@@ -1,0 +1,51 @@
+학생들에게 학습지를 html 코드로 만들려고 한다. 
+- 학년, 반, 번호, 이름을 입력하도록 한다. 
+- 지구의 자전과 공전에 대해서 객관식 3문제, 주관식 2문제를 만든다.
+- 제출버튼을 만든다. 
+- 제출 버튼을 누르면 파이어 베이스로 전송한다. 
+- 파이어베이스 sdk는 다음과 같다. 
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyAN3Vqk9cuy4BYDaEo9oxRoSx-kZd1Di-c",
+    authDomain: "vibecoding-e8c97.firebaseapp.com",
+    projectId: "vibecoding-e8c97",
+    storageBucket: "vibecoding-e8c97.firebasestorage.app",
+    messagingSenderId: "429019830700",
+    appId: "1:429019830700:web:ba551c6171224c7f364209",
+    measurementId: "G-K8Y657TQ57"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
+
+--------------------------------------
+파이어스토어 규칙은 다음과 같다.
+제출 버튼을 눌렀을 때, firestore에 저장이 되도록 규칙을 수정해주기 바란다.
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+
+
+
+
+
+
+
+

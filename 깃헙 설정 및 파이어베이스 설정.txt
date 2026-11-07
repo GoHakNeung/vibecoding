@@ -1,0 +1,89 @@
+github 계정 생성
++ new repository 
++ create new file
+- index.html 
+파일 작성
+- setting
+- pages
+- branch - main - save
+
+
+-------파일 수정----
+- code
+- add file 클릭
+- upload files
+- 
+
+https://lrl.kr/e3vxN
+
+----------------------
+index.html <-기본
+project1
+  |- one.html
+  |- two.html
+project2
+  |- three.html
+  |- four.html
+
+
+
+
+
+------------------------
+firebase.google.com
+로그인
+콘솔로 이동
+------------------
+- 새 firebase 프로젝트 만들기
+- 계속 > 계속 >
+- 계정 선택
+- 프로젝트 만들기
+- 계속
+- (+ 앱추가)
+- </> 클릭
+- 앱 이름 
+- firebase SDK추가
+- <script> 태그 사용
+- 콘솔로 이동
+- 설정 -> 일반
+-----------------------
+내 웹앱에 파이어베이스 연결하기
+
+- 데이터베이스
+- firestore
+- 데이터베이스 만들기
+- standard
+- asia-northeast3-seoul
+- 테스트 모드
+
+규칙
+- ai가 만들어준 규칙을 규칙에 덮어쓰기
+
+github에 업로드하기
+- 기존의 파일 하나를 고쳐쓰기
+
+예를들어 
+one.html 올리기 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

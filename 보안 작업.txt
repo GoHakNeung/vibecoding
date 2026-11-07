@@ -1,0 +1,13 @@
+보안
+- 파이어베이스 > 보안 > Authentication > 시작하기 > 로그인 방법 > google
+- 설정 > 승인된 도메인 > 도메인 추가 > https://계정.github.io/
+
+구글 클라우드
+> api 및 서비스 > 사용자 인증 정보
+> 애플리케이션 제한사항
+> 웹사이트
+> +add
+> https://계정.github.io/
+, https://계정.github.io/*
+, vibecoding-e8c97.firebaseapp.com/
+, vibecoding-e8c97.firebaseapp.com/*
