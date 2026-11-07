@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>모둠 구성 프로그램</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Noto Sans KR -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Noto Sans KR', sans-serif;
+      box-sizing: border-box;
+    }
+    /* Custom scrollbars for clean compact layout */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f8fafc;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    /* Smooth card transitions */
+    .group-card {
+      transition: all 0.2s ease-in-out;
+    }
+    .group-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+    }
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      .print-full {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-white text-zinc-900 min-h-screen flex flex-col antialiased selection:bg-zinc-900 selection:text-white">
+
+  <!-- Toast Notification Box -->
+  <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-zinc-900 text-white text-xs sm:text-sm px-4 py-2.5 rounded-full shadow-lg opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-2">
+    <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+    </svg>
+    <span id="toast-message">알림</span>
+  </div>
+
+  <!-- Header -->
+  <header class="border-b border-zinc-200 bg-white sticky top-0 z-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-zinc-900 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+          👥
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold tracking-tight text-zinc-900 flex items-center gap-2">
+            모둠 구성 프로그램
+            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600 border border-zinc-200">단일 화면 모드</span>
+          </h1>
+          <p class="text-xs text-zinc-500 hidden sm:block">성별 균등 배정 및 번호 제외 기능이 포함된 깔끔한 모둠 편성기</p>
+        </div>
+      </div>
+
+      <!-- Quick Summary Stats Header -->
+      <div class="flex items-center gap-2 text-xs">
+        <div class="bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1 text-zinc-600">
+          최종 대상: <span id="summary-total" class="font-bold text-zinc-900">0</span>명
+        </div>
+        <div class="bg-red-50 border border-red-200 rounded-lg px-2.5 py-1 text-red-600">
+          남성: <span id="summary-male" class="font-bold">0</span>명
+        </div>
+        <div class="bg-zinc-100 border border-zinc-300 rounded-lg px-2.5 py-1 text-zinc-900">
+          여성: <span id="summary-female" class="font-bold">0</span>명
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="max-w-7xl mx-auto w-full px-3 sm:px-6 py-4 flex-1 flex flex-col lg:flex-row gap-5">
+    
+    <!-- Left Configuration Panel -->
+    <aside class="no-print w-full lg:w-[380px] xl:w-[420px] flex-shrink-0 flex flex-col gap-4">
+      
+      <!-- Input Settings Card -->
+      <section class="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm flex flex-col gap-3.5">
+        <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+          <h2 class="text-sm font-bold text-zinc-900 flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+            </svg>
+            기본 설정
+          </h2>
+          <button onclick="resetDefaults()" class="text-xs text-zinc-400 hover:text-zinc-700 underline transition">
+            기본값 초기화
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <!-- Max Range Input -->
+          <div>
+            <label for="input-max-range" class="block text-xs font-semibold text-zinc-700 mb-1">
+              총 학생 수 (최대 번호)
+            </label>
+            <div class="relative">
+              <input 
+                id="input-max-range" 
+                type="number" 
+                min="2" 
+                max="100" 
+                value="24"
+                onchange="handleConfigChange()"
+                onkeyup="handleConfigChange()"
+                class="w-full text-sm font-semibold px-3 py-2 border border-zinc-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900"
+                placeholder="예: 25"
+              />
+              <span class="absolute right-3 top-2.5 text-xs text-zinc-400">번까지</span>
+            </div>
+          </div>
+
+          <!-- Group Count Input -->
+          <div>
+            <label for="input-group-count" class="block text-xs font-semibold text-zinc-700 mb-1">
+              편성할 모둠 수
+            </label>
+            <div class="relative">
+              <input 
+                id="input-group-count" 
+                type="number" 
+                min="2" 
+                max="20" 
+                value="6"
+                onchange="handleConfigChange()"
+                onkeyup="handleConfigChange()"
+                class="w-full text-sm font-semibold px-3 py-2 border border-zinc-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900"
+                placeholder="예: 6"
+              />
+              <span class="absolute right-3 top-2.5 text-xs text-zinc-400">개 모둠</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Exclusion Input -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="input-exclusions" class="text-xs font-semibold text-zinc-700">
+              제외할 번호 <span class="font-normal text-zinc-400">(쉼표로 구분)</span>
+            </label>
+            <span id="excluded-count-badge" class="text-[11px] text-zinc-400 font-medium">제외: 0명</span>
+          </div>
+          <input 
+            id="input-exclusions" 
+            type="text" 
+            onchange="handleConfigChange()"
+            onkeyup="handleConfigChange()"
+            placeholder="예: 3, 12, 17"
+            class="w-full text-xs font-mono px-3 py-2 border border-zinc-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 placeholder:text-zinc-300 placeholder:font-sans"
+          />
+        </div>
+
+        <!-- Gender Balance Toggle -->
+        <div class="pt-1 flex items-center justify-between border-t border-zinc-100">
+          <div>
+            <span class="text-xs font-semibold text-zinc-800 block">성별 균등 배정</span>
+            <span class="text-[11px] text-zinc-400 block">남녀를 각 모둠에 골고루 분배</span>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input id="toggle-balance" type="checkbox" checked class="sr-only peer">
+            <div class="w-11 h-6 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-zinc-900"></div>
+          </label>
+        </div>
+      </section>
+
+      <!-- Gender Selection Card -->
+      <section class="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm flex flex-col flex-1 min-h-[300px]">
+        <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5 mb-2">
+          <div>
+            <h2 class="text-sm font-bold text-zinc-900 flex items-center gap-1.5">
+              <span>남성 학생 선택</span>
+              <span class="text-[11px] font-normal text-zinc-400">(체크 시 남성)</span>
+            </h2>
+            <p class="text-[11px] mt-0.5">
+              <span class="text-red-600 font-bold">남성: 빨간색</span> · 
+              <span class="text-zinc-900 font-bold">여성: 검정색</span>
+            </p>
+          </div>
+
+          <!-- Quick presets -->
+          <div class="flex items-center gap-1 text-[11px]">
+            <button onclick="selectAllMale(true)" class="px-2 py-0.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 font-medium text-zinc-600 transition">전체 남성</button>
+            <button onclick="selectAllMale(false)" class="px-2 py-0.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 font-medium text-zinc-600 transition">전체 여성</button>
+          </div>
+        </div>
+
+        <!-- Bulk male selection by comma input -->
+        <div class="mb-3">
+          <label for="input-male-bulk" class="text-[11px] font-semibold text-zinc-600 block mb-1">
+            남성 번호 일괄 입력 <span class="text-zinc-400 font-normal">(쉼표로 입력 시 자동 체크)</span>
+          </label>
+          <div class="flex gap-1.5">
+            <input 
+              id="input-male-bulk" 
+              type="text" 
+              placeholder="예: 1, 2, 5, 8, 10, 11" 
+              oninput="handleMaleBulkInput()"
+              class="w-full text-xs font-mono px-3 py-1.5 border border-zinc-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 placeholder:font-sans placeholder:text-zinc-300"
+            />
+            <button 
+              onclick="applyEvenOddMale('odd')" 
+              title="홀수 번호만 남성으로"
+              class="px-2 py-1 bg-zinc-100 hover:bg-zinc-200 rounded-xl text-[11px] font-medium text-zinc-700 whitespace-nowrap transition">
+              홀수남
+            </button>
+            <button 
+              onclick="applyEvenOddMale('even')" 
+              title="짝수 번호만 남성으로"
+              class="px-2 py-1 bg-zinc-100 hover:bg-zinc-200 rounded-xl text-[11px] font-medium text-zinc-700 whitespace-nowrap transition">
+              짝수남
+            </button>
+          </div>
+        </div>
+
+        <!-- Checkbox Grid for active numbers -->
+        <div class="flex-1 overflow-y-auto max-h-[260px] pr-1">
+          <div id="gender-grid" class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+            <!-- Dynamic checkboxes injected by JS -->
+          </div>
+        </div>
+
+        <!-- Generation Buttons -->
+        <div class="pt-3 mt-3 border-t border-zinc-100 flex flex-col gap-2">
+          <button 
+            id="btn-generate"
+            onclick="generateGroups()" 
+            class="w-full py-3 px-4 bg-zinc-900 hover:bg-black text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 active:scale-[0.99]">
+            <svg class="w-4 h-4 text-amber-300" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 011.342 1.342l-.8 1.6 1.582 3.953H20a1 1 0 010 2h-1.323l-1.582 3.954.8 1.599a1 1 0 01-1.342 1.342l-1.6-.8-3.953 1.582V20a1 1 0 01-2 0v-1.323l-3.954-1.582-1.599.8a1 1 0 01-1.342-1.342l.8-1.6L1.323 12H0a1 1 0 010-2h1.323l1.582-3.954-.8-1.599a1 1 0 011.342-1.342l1.6.8L9 4.323V3a1 1 0 011-1z"></path>
+            </svg>
+            모둠 편성하기
+          </button>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- Right Results Panel (Single Screen Board) -->
+    <section class="flex-1 flex flex-col min-w-0">
+      
+      <!-- Top Action Bar for Results -->
+      <div class="bg-white border border-zinc-200 rounded-2xl px-4 py-3 mb-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+        <div class="flex items-center gap-2">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          <h2 class="text-sm font-bold text-zinc-900">편성 결과</h2>
+          <span id="result-status-badge" class="text-xs text-zinc-500 font-medium">대기 중</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button 
+            id="btn-reshuffle"
+            onclick="generateGroups()" 
+            class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-semibold rounded-xl border border-zinc-200 transition flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            다시 섞기
+          </button>
+
+          <button 
+            id="btn-copy"
+            onclick="copyResultsToClipboard()" 
+            class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-semibold rounded-xl border border-zinc-200 transition flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+            </svg>
+            결과 복사
+          </button>
+
+          <button 
+            onclick="window.print()" 
+            class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-semibold rounded-xl border border-zinc-200 transition flex items-center gap-1.5 no-print">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+            </svg>
+            인쇄
+          </button>
+        </div>
+      </div>
+
+      <!-- Result Container (Grid of Groups) -->
+      <div id="results-wrapper" class="flex-1 bg-white border border-zinc-200 rounded-2xl p-4 sm:p-5 shadow-sm overflow-y-auto">
+        <!-- Rendered group cards will be placed here -->
+        <div id="groups-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <!-- Initial Placeholder state -->
+          <div class="col-span-full py-16 flex flex-col items-center justify-center text-center">
+            <div class="w-14 h-14 rounded-full bg-zinc-100 flex items-center justify-center text-2xl text-zinc-400 mb-3">
+              🎲
+            </div>
+            <h3 class="text-sm font-bold text-zinc-700">모둠이 아직 편성되지 않았습니다</h3>
+            <p class="text-xs text-zinc-400 mt-1 max-w-sm">
+              왼쪽 설정에서 번호와 남성을 확인한 후 <br><strong>[모둠 편성하기]</strong> 버튼을 클릭하세요.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Color Legend Footnote -->
+      <div class="mt-3 px-2 flex items-center justify-between text-xs text-zinc-500">
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-1.5">
+            <span class="inline-block w-3 h-3 rounded-full bg-red-600"></span>
+            <span class="text-red-600 font-bold">남성 (빨간색)</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="inline-block w-3 h-3 rounded-full bg-zinc-900"></span>
+            <span class="text-zinc-900 font-bold">여성 (검정색)</span>
+          </div>
+        </div>
+        <div class="text-[11px] text-zinc-400">
+          * 번호 정렬 모드: 모둠 내 오름차순 표시
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- JavaScript Logic -->
+  <script>
+    // App State
+    let maxRange = 24;
+    let groupCount = 6;
+    let excludedNumbers = new Set();
+    let maleNumbers = new Set();
+    let currentGroups = []; // Array of groups: [ { groupIndex: 1, members: [ { num: 1, isMale: true } ] } ]
+
+    // Elements
+    const inputMaxRange = document.getElementById('input-max-range');
+    const inputGroupCount = document.getElementById('input-group-count');
+    const inputExclusions = document.getElementById('input-exclusions');
+    const inputMaleBulk = document.getElementById('input-male-bulk');
+    const toggleBalance = document.getElementById('toggle-balance');
+    const genderGrid = document.getElementById('gender-grid');
+    const groupsGrid = document.getElementById('groups-grid');
+    const summaryTotal = document.getElementById('summary-total');
+    const summaryMale = document.getElementById('summary-male');
+    const summaryFemale = document.getElementById('summary-female');
+    const excludedCountBadge = document.getElementById('excluded-count-badge');
+    const resultStatusBadge = document.getElementById('result-status-badge');
+
+    // Parse comma-separated string into a Set of numbers
+    function parseNumberList(text) {
+      if (!text) return new Set();
+      const parts = text.split(/[\s,]+/);
+      const set = new Set();
+      for (let p of parts) {
+        const n = parseInt(p.trim(), 10);
+        if (!isNaN(n) && n > 0) {
+          set.add(n);
+        }
+      }
+      return set;
+    }
+
+    // Get Active Student numbers (1..maxRange excluding excludedNumbers)
+    function getActiveStudents() {
+      const active = [];
+      for (let i = 1; i <= maxRange; i++) {
+        if (!excludedNumbers.has(i)) {
+          active.push(i);
+        }
+      }
+      return active;
+    }
+
+    // Show Toast
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-message');
+      toastMsg.textContent = msg;
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      toast.classList.add('opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 2400);
+    }
+
+    // Render Checkbox Grid for active students
+    function renderGenderGrid() {
+      genderGrid.innerHTML = '';
+      const active = getActiveStudents();
+
+      active.forEach(num => {
+        const isMale = maleNumbers.has(num);
+        const card = document.createElement('label');
+        card.className = `cursor-pointer select-none rounded-xl border p-2 flex flex-col items-center justify-between text-center transition-all ${
+          isMale 
+            ? 'bg-red-50/80 border-red-300 text-red-600 shadow-sm' 
+            : 'bg-zinc-50 border-zinc-200 text-zinc-900 hover:bg-zinc-100'
+        }`;
+        
+        card.innerHTML = `
+          <div class="flex items-center justify-between w-full mb-1">
+            <span class="text-[11px] font-mono font-bold">${String(num).padStart(2, '0')}</span>
+            <input 
+              type="checkbox" 
+              value="${num}" 
+              ${isMale ? 'checked' : ''} 
+              class="w-3.5 h-3.5 text-red-600 accent-red-600 rounded border-zinc-300 cursor-pointer"
+              onchange="toggleMaleStudent(${num}, this.checked)"
+            />
+          </div>
+          <span class="text-[11px] font-bold ${isMale ? 'text-red-600' : 'text-zinc-800'}">
+            ${isMale ? '남 (M)' : '여 (F)'}
+          </span>
+        `;
+        genderGrid.appendChild(card);
+      });
+
+      updateStatsSummary();
+    }
+
+    // Toggle male checkbox handler
+    function toggleMaleStudent(num, checked) {
+      if (checked) {
+        maleNumbers.add(num);
+      } else {
+        maleNumbers.delete(num);
+      }
+      renderGenderGrid();
+      syncMaleBulkInput();
+    }
+
+    // Synchronize bulk male text input
+    function syncMaleBulkInput() {
+      const active = getActiveStudents();
+      const activeMales = active.filter(n => maleNumbers.has(n));
+      inputMaleBulk.value = activeMales.sort((a,b) => a-b).join(', ');
+    }
+
+    // Bulk input typing handler
+    function handleMaleBulkInput() {
+      const enteredSet = parseNumberList(inputMaleBulk.value);
+      maleNumbers.clear();
+      enteredSet.forEach(n => {
+        if (n <= maxRange && !excludedNumbers.has(n)) {
+          maleNumbers.add(n);
+        }
+      });
+      renderGenderGrid();
+    }
+
+    // Quick presets: All Male or All Female
+    function selectAllMale(isAllMale) {
+      const active = getActiveStudents();
+      maleNumbers.clear();
+      if (isAllMale) {
+        active.forEach(n => maleNumbers.add(n));
+      }
+      syncMaleBulkInput();
+      renderGenderGrid();
+      showToast(isAllMale ? '모든 학생을 남성으로 설정했습니다.' : '모든 학생을 여성으로 설정했습니다.');
+    }
+
+    // Quick presets: Odd/Even numbers as Male
+    function applyEvenOddMale(type) {
+      const active = getActiveStudents();
+      maleNumbers.clear();
+      active.forEach(n => {
+        if (type === 'odd' && n % 2 !== 0) maleNumbers.add(n);
+        if (type === 'even' && n % 2 === 0) maleNumbers.add(n);
+      });
+      syncMaleBulkInput();
+      renderGenderGrid();
+      showToast(type === 'odd' ? '홀수 번호를 남성으로 지정했습니다.' : '짝수 번호를 남성으로 지정했습니다.');
+    }
+
+    // Update Stats Summary on top
+    function updateStatsSummary() {
+      const active = getActiveStudents();
+      const total = active.length;
+      let maleCount = 0;
+      active.forEach(n => {
+        if (maleNumbers.has(n)) maleCount++;
+      });
+      const femaleCount = total - maleCount;
+
+      summaryTotal.textContent = total;
+      summaryMale.textContent = maleCount;
+      summaryFemale.textContent = femaleCount;
+      excludedCountBadge.textContent = `제외: ${excludedNumbers.size}명`;
+    }
+
+    // Handle configuration changes (Total range, Exclusions, Group count)
+    function handleConfigChange() {
+      const rangeVal = parseInt(inputMaxRange.value, 10);
+      maxRange = isNaN(rangeVal) || rangeVal < 2 ? 2 : rangeVal;
+
+      const groupVal = parseInt(inputGroupCount.value, 10);
+      groupCount = isNaN(groupVal) || groupVal < 1 ? 1 : groupVal;
+
+      excludedNumbers = parseNumberList(inputExclusions.value);
+      
+      // Clean up male numbers that are now excluded or out of bounds
+      const toRemove = [];
+      maleNumbers.forEach(n => {
+        if (n > maxRange || excludedNumbers.has(n)) {
+          toRemove.push(n);
+        }
+      });
+      toRemove.forEach(n => maleNumbers.delete(n));
+
+      renderGenderGrid();
+    }
+
+    // Reset Defaults
+    function resetDefaults() {
+      inputMaxRange.value = 24;
+      inputGroupCount.value = 6;
+      inputExclusions.value = '';
+      inputMaleBulk.value = '';
+      toggleBalance.checked = true;
+      maleNumbers.clear();
+      // Set default ~50% males (e.g. odd numbers)
+      for (let i = 1; i <= 24; i += 2) {
+        maleNumbers.add(i);
+      }
+      handleConfigChange();
+      syncMaleBulkInput();
+      showToast('기본 설정으로 초기화되었습니다.');
+    }
+
+    // Fisher-Yates Shuffle
+    function shuffle(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // Generate Groups
+    function generateGroups() {
+      const active = getActiveStudents();
+      const totalStudents = active.length;
+
+      if (totalStudents === 0) {
+        showToast('편성할 학생이 없습니다. 번호 범위를 확인하세요.');
+        return;
+      }
+      if (groupCount <= 0) {
+        showToast('모둠 수는 1개 이상이어야 합니다.');
+        return;
+      }
+      if (groupCount > totalStudents) {
+        showToast(`모둠 수(${groupCount})가 학생 수(${totalStudents}명)보다 많을 수 없습니다.`);
+        return;
+      }
+
+      // Initialize groups
+      const groups = Array.from({ length: groupCount }, (_, idx) => ({
+        index: idx + 1,
+        members: []
+      }));
+
+      const isBalanced = toggleBalance.checked;
+
+      if (isBalanced) {
+        // Separate by gender
+        const males = [];
+        const females = [];
+        active.forEach(num => {
+          if (maleNumbers.has(num)) {
+            males.push(num);
+          } else {
+            females.push(num);
+          }
+        });
+
+        const shuffledMales = shuffle(males);
+        const shuffledFemales = shuffle(females);
+
+        // Randomize starting group offset to ensure fair placement across reshuffles
+        let groupPtr = Math.floor(Math.random() * groupCount);
+
+        // Distribute males
+        shuffledMales.forEach(num => {
+          groups[groupPtr % groupCount].members.push({ num, isMale: true });
+          groupPtr++;
+        });
+
+        // Distribute females
+        shuffledFemales.forEach(num => {
+          groups[groupPtr % groupCount].members.push({ num, isMale: false });
+          groupPtr++;
+        });
+
+      } else {
+        // Pure random shuffle of everyone
+        const shuffledAll = shuffle(active);
+        shuffledAll.forEach((num, idx) => {
+          groups[idx % groupCount].members.push({
+            num,
+            isMale: maleNumbers.has(num)
+          });
+        });
+      }
+
+      // Sort student numbers ascending within each group for neat reading
+      groups.forEach(g => {
+        g.members.sort((a, b) => a.num - b.num);
+      });
+
+      currentGroups = groups;
+      renderGroupsUI();
+      resultStatusBadge.textContent = `${groupCount}개 모둠 편성 완료 (${new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })})`;
+      showToast('✨ 모둠이 성공적으로 편성되었습니다!');
+    }
+
+    // Render Group Cards on the screen
+    function renderGroupsUI() {
+      groupsGrid.innerHTML = '';
+
+      currentGroups.forEach(group => {
+        const maleCount = group.members.filter(m => m.isMale).length;
+        const femaleCount = group.members.filter(m => !m.isMale).length;
+        const totalCount = group.members.length;
+
+        const card = document.createElement('div');
+        card.className = 'group-card bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm flex flex-col justify-between';
+
+        let membersHtml = '';
+        group.members.forEach(m => {
+          if (m.isMale) {
+            // Male: Vivid Red text & accents
+            membersHtml += `
+              <div class="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-red-50/70 border border-red-200">
+                <span class="font-bold text-red-600 text-xs sm:text-sm font-mono flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span>
+                  ${String(m.num).padStart(2, '0')}번
+                </span>
+                <span class="text-[11px] font-bold text-red-700 bg-red-100/90 px-1.5 py-0.5 rounded-md">남성</span>
+              </div>
+            `;
+          } else {
+            // Female: Sharp Black text & accents
+            membersHtml += `
+              <div class="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-zinc-50 border border-zinc-200">
+                <span class="font-bold text-zinc-900 text-xs sm:text-sm font-mono flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-zinc-800 inline-block"></span>
+                  ${String(m.num).padStart(2, '0')}번
+                </span>
+                <span class="text-[11px] font-bold text-zinc-900 bg-zinc-200 px-1.5 py-0.5 rounded-md">여성</span>
+              </div>
+            `;
+          }
+        });
+
+        card.innerHTML = `
+          <div>
+            <!-- Group Header -->
+            <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5 mb-3">
+              <div class="flex items-center gap-2">
+                <span class="w-7 h-7 rounded-lg bg-zinc-900 text-white font-black text-xs flex items-center justify-center">
+                  ${group.index}
+                </span>
+                <h3 class="font-bold text-zinc-900 text-sm sm:text-base">${group.index} 모둠</h3>
+              </div>
+              <div class="text-xs text-zinc-500 font-medium flex items-center gap-1.5">
+                <span>총 <strong class="text-zinc-900">${totalCount}</strong>명</span>
+                <span class="text-zinc-300">|</span>
+                <span class="text-red-600 font-semibold">남 ${maleCount}</span>
+                <span class="text-zinc-300">·</span>
+                <span class="text-zinc-900 font-semibold">여 ${femaleCount}</span>
+              </div>
+            </div>
+
+            <!-- Members List Grid -->
+            <div class="grid grid-cols-2 gap-2">
+              ${membersHtml}
+            </div>
+          </div>
+
+          <!-- Card Footer quick copy individual group -->
+          <div class="mt-3 pt-2.5 border-t border-zinc-100 flex items-center justify-end">
+            <button 
+              onclick="copySingleGroup(${group.index})" 
+              title="${group.index}모둠 복사"
+              class="text-[11px] text-zinc-400 hover:text-zinc-700 flex items-center gap-1 font-medium transition">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+              모둠 복사
+            </button>
+          </div>
+        `;
+
+        groupsGrid.appendChild(card);
+      });
+    }
+
+    // Copy formatted full results to clipboard (iframe safe with execCommand fallback)
+    function copyResultsToClipboard() {
+      if (!currentGroups || currentGroups.length === 0) {
+        showToast('복사할 모둠 편성 결과가 없습니다.');
+        return;
+      }
+
+      let text = `📋 [모둠 편성 결과]\n`;
+      text += `편성 일시: ${new Date().toLocaleString('ko-KR')}\n`;
+      text += `총 모둠 수: ${currentGroups.length}개\n`;
+      text += `------------------------------------\n\n`;
+
+      currentGroups.forEach(g => {
+        const maleCount = g.members.filter(m => m.isMale).length;
+        const femaleCount = g.members.filter(m => !m.isMale).length;
+        const memberStr = g.members
+          .map(m => `${m.num}번(${m.isMale ? '남' : '여'})`)
+          .join(', ');
+
+        text += `[${g.index}모둠] (총 ${g.members.length}명: 남 ${maleCount}, 여 ${femaleCount})\n`;
+        text += `  ▶ ${memberStr}\n\n`;
+      });
+
+      fallbackCopyText(text, '전체 모둠 결과가 클립보드에 복사되었습니다!');
+    }
+
+    // Copy single group
+    function copySingleGroup(groupIndex) {
+      const g = currentGroups.find(item => item.index === groupIndex);
+      if (!g) return;
+
+      const maleCount = g.members.filter(m => m.isMale).length;
+      const femaleCount = g.members.filter(m => !m.isMale).length;
+      const memberStr = g.members
+        .map(m => `${m.num}번(${m.isMale ? '남' : '여'})`)
+        .join(', ');
+
+      const text = `[${g.index}모둠] (총 ${g.members.length}명: 남 ${maleCount}, 여 ${femaleCount})\n${memberStr}`;
+      fallbackCopyText(text, `${groupIndex}모둠 명단이 복사되었습니다!`);
+    }
+
+    // Robust Clipboard Copy function
+    function fallbackCopyText(text, successMsg) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.top = "-9999px";
+      textArea.style.left = "-9999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          showToast(successMsg);
+        } else {
+          showToast('복사에 실패했습니다.');
+        }
+      } catch (err) {
+        showToast('클립보드 접근 권한이 없습니다.');
+      }
+
+      document.body.removeChild(textArea);
+    }
+
+    // Initial setup on Window Load
+    window.addEventListener('DOMContentLoaded', () => {
+      // Set initial state: default 24 students, odd numbers male
+      for (let i = 1; i <= 24; i += 2) {
+        maleNumbers.add(i);
+      }
+      handleConfigChange();
+      syncMaleBulkInput();
+      // Generate initial group preview
+      generateGroups();
+    });
+  </script>
+</body>
+</html>

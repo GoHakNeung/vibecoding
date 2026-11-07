@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>다양한 모양이 튕기는 캔버스</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: #f4f6f8;
+      font-family: sans-serif;
+      gap: 14px;
+    }
+
+    h2 {
+      margin: 0;
+      color: #333;
+      min-height: 34px;
+    }
+
+    /* 통합 컨트롤 패널 */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+      background: #ffffff;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      max-width: 650px;
+      box-sizing: border-box;
+    }
+
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+    }
+
+    /* 텍스트 입력창 */
+    input[type="text"] {
+      padding: 8px 12px;
+      font-size: 14px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 6px;
+      outline: none;
+      width: 170px;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: #2563eb;
+    }
+
+    /* 버튼 스타일 */
+    button {
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #ffffff;
+      background-color: #2563eb;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+
+    button:hover {
+      background-color: #1d4ed8;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    /* 슬라이더 영역 */
+    .speed-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    .speed-control input[type="range"] {
+      width: 100px;
+      cursor: pointer;
+    }
+
+    .speed-badge {
+      display: inline-block;
+      min-width: 20px;
+      color: #2563eb;
+    }
+
+    /* 구분선 있는 서브 옵션 행 */
+    .sub-control {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      color: #334155;
+      padding-top: 10px;
+      border-top: 1px solid #f1f5f9;
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* 체크박스 & 라디오 라벨 스타일 */
+    .custom-label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      font-size: 13px;
+      user-select: none;
+    }
+
+    .custom-label input[type="checkbox"] {
+      cursor: pointer;
+      accent-color: #2563eb;
+      width: 16px;
+      height: 16px;
+    }
+
+    .custom-label input[type="radio"] {
+      cursor: pointer;
+      accent-color: #f59e0b;
+    }
+
+    .rating-display {
+      font-weight: 700;
+      color: #d97706;
+      margin-left: 4px;
+    }
+
+    /* 직사각형 배경 캔버스 */
+    canvas {
+      background-color: #1e293b;
+      border: 3px solid #0f172a;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  </style>
+</head>
+<body>
+
+  <h2 id="canvasTitle">벽에 부딪혀 튕기는 공</h2>
+
+  <div class="controls">
+    <!-- 1행: 제목 변경 / 색상 변경 / 속도 조절 -->
+    <div class="controls-row">
+      <input 
+        type="text" 
+        id="titleInput" 
+        placeholder="새 제목을 입력하세요..." 
+        maxlength="30"
+      />
+      <button id="colorBtn">🎨 전체 색상 변경</button>
+      <div class="speed-control">
+        <label for="speedRange">속도:</label>
+        <input type="range" id="speedRange" min="1" max="15" value="5" step="1" />
+        <span id="speedVal" class="speed-badge">5</span>
+      </div>
+    </div>
+
+    <!-- 2행: 모양 선택 체크박스 (5종) -->
+    <div class="sub-control">
+      <span><strong>모양 선택:</strong></span>
+      <label class="custom-label">
+        <input type="checkbox" class="shape-toggle" data-id="circle" checked /> ⚪ 원
+      </label>
+      <label class="custom-label">
+        <input type="checkbox" class="shape-toggle" data-id="square" checked /> ⬛ 사각형
+      </label>
+      <label class="custom-label">
+        <input type="checkbox" class="shape-toggle" data-id="triangle" checked /> 🔺 삼각형
+      </label>
+      <label class="custom-label">
+        <input type="checkbox" class="shape-toggle" data-id="star" /> ⭐ 별
+      </label>
+      <label class="custom-label">
+        <input type="checkbox" class="shape-toggle" data-id="diamond" /> 🔷 다이아몬드
+      </label>
+    </div>
+
+    <!-- 3행: 별점 라디오 버튼 -->
+    <div class="sub-control">
+      <span><strong>별점:</strong></span>
+      <div style="display: flex; gap: 8px;">
+        <label class="custom-label"><input type="radio" name="starRating" value="1"> 1점</label>
+        <label class="custom-label"><input type="radio" name="starRating" value="2"> 2점</label>
+        <label class="custom-label"><input type="radio" name="starRating" value="3"> 3점</label>
+        <label class="custom-label"><input type="radio" name="starRating" value="4"> 4점</label>
+        <label class="custom-label"><input type="radio" name="starRating" value="5" checked> 5점</label>
+      </div>
+      <span id="ratingOutput" class="rating-display">★★★★★ (5점)</span>
+    </div>
+  </div>
+
+  <canvas id="bounceCanvas" width="600" height="400"></canvas>
+
+  <script>
+    const canvas = document.getElementById('bounceCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const titleInput = document.getElementById('titleInput');
+    const canvasTitle = document.getElementById('canvasTitle');
+    const colorBtn = document.getElementById('colorBtn');
+    const speedRange = document.getElementById('speedRange');
+    const speedVal = document.getElementById('speedVal');
+    const ratingRadios = document.querySelectorAll('input[name="starRating"]');
+    const ratingOutput = document.getElementById('ratingOutput');
+    const shapeCheckboxes = document.querySelectorAll('.shape-toggle');
+
+    const defaultTitle = '벽에 부딪혀 튕기는 공';
+
+    // 1. 실시간 제목 입력
+    titleInput.addEventListener('input', (e) => {
+      const text = e.target.value.trim();
+      canvasTitle.textContent = text.length > 0 ? text : defaultTitle;
+    });
+
+    // 2. 별점 라디오 버튼
+    function updateRating(score) {
+      const fullStars = '★'.repeat(score);
+      const emptyStars = '☆'.repeat(5 - score);
+      ratingOutput.textContent = `${fullStars}${emptyStars} (${score}점)`;
+    }
+    ratingRadios.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        updateRating(parseInt(e.target.value, 10));
+      });
+    });
+
+    // 3. 5종 모양 데이터 정의 (좌표, 이동 방향 벡터, 색상, 크기)
+    const shapes = {
+      circle: {
+        active: true,
+        type: 'circle',
+        x: 100, y: 120,
+        dx: 4, dy: 3,
+        size: 16,
+        color: '#38bdf8'
+      },
+      square: {
+        active: true,
+        type: 'square',
+        x: 200, y: 220,
+        dx: -3, dy: 4,
+        size: 16,
+        color: '#f43f5e'
+      },
+      triangle: {
+        active: true,
+        type: 'triangle',
+        x: 320, y: 150,
+        dx: 4, dy: -3,
+        size: 18,
+        color: '#10b981'
+      },
+      star: {
+        active: false,
+        type: 'star',
+        x: 420, y: 260,
+        dx: -4, dy: -3,
+        size: 20,
+        color: '#fbbf24'
+      },
+      diamond: {
+        active: false,
+        type: 'diamond',
+        x: 260, y: 320,
+        dx: 3, dy: -4,
+        size: 18,
+        color: '#a855f7'
+      }
+    };
+
+    // 체크박스 토글 이벤트 바인딩
+    shapeCheckboxes.forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        const shapeId = e.target.getAttribute('data-id');
+        if (shapes[shapeId]) {
+          shapes[shapeId].active = e.target.checked;
+        }
+      });
+    });
+
+    // 4. 속도 정규화 및 반영
+    let currentSpeed = parseFloat(speedRange.value);
+
+    function applySpeedToShape(shape, targetSpeed) {
+      const mag = Math.hypot(shape.dx, shape.dy);
+      if (mag > 0) {
+        shape.dx = (shape.dx / mag) * targetSpeed;
+        shape.dy = (shape.dy / mag) * targetSpeed;
+      }
+    }
+
+    function applyGlobalSpeed(targetSpeed) {
+      Object.values(shapes).forEach(shape => applySpeedToShape(shape, targetSpeed));
+    }
+    applyGlobalSpeed(currentSpeed);
+
+    speedRange.addEventListener('input', (e) => {
+      currentSpeed = parseFloat(e.target.value);
+      speedVal.textContent = currentSpeed;
+      applyGlobalSpeed(currentSpeed);
+    });
+
+    // 5. 무작위 색상 생성 및 전체 색상 변경
+    function getRandomColor() {
+      const hue = Math.floor(Math.random() * 360);
+      return `hsl(${hue}, 85%, 60%)`;
+    }
+
+    colorBtn.addEventListener('click', () => {
+      Object.values(shapes).forEach(shape => {
+        shape.color = getRandomColor();
+      });
+    });
+
+    // 6. 각 도형별 Canvas 렌더링 함수
+    function drawShape(s) {
+      ctx.fillStyle = s.color;
+      ctx.beginPath();
+
+      if (s.type === 'circle') {
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+      } else if (s.type === 'square') {
+        ctx.rect(s.x - s.size, s.y - s.size, s.size * 2, s.size * 2);
+      } else if (s.type === 'triangle') {
+        ctx.moveTo(s.x, s.y - s.size);
+        ctx.lineTo(s.x + s.size * Math.cos(Math.PI / 6), s.y + s.size * Math.sin(Math.PI / 6));
+        ctx.lineTo(s.x - s.size * Math.cos(Math.PI / 6), s.y + s.size * Math.sin(Math.PI / 6));
+      } else if (s.type === 'diamond') {
+        ctx.moveTo(s.x, s.y - s.size);
+        ctx.lineTo(s.x + s.size, s.y);
+        ctx.lineTo(s.x, s.y + s.size);
+        ctx.lineTo(s.x - s.size, s.y);
+      } else if (s.type === 'star') {
+        const spikes = 5;
+        const outerRadius = s.size;
+        const innerRadius = s.size / 2;
+        let rot = Math.PI / 2 * 3;
+        const step = Math.PI / spikes;
+
+        ctx.moveTo(s.x, s.y - outerRadius);
+        for (let i = 0; i < spikes; i++) {
+          let sx = s.x + Math.cos(rot) * outerRadius;
+          let sy = s.y + Math.sin(rot) * outerRadius;
+          ctx.lineTo(sx, sy);
+          rot += step;
+
+          sx = s.x + Math.cos(rot) * innerRadius;
+          sy = s.y + Math.sin(rot) * innerRadius;
+          ctx.lineTo(sx, sy);
+          rot += step;
+        }
+      }
+
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // 7. 애니메이션 루프
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 활성화된 도형만 업데이트 및 렌더링
+      Object.values(shapes).forEach(s => {
+        if (!s.active) return;
+
+        // 벽 충돌 감지 및 뚫림 방지 위치 보정
+        if (s.x + s.dx > canvas.width - s.size) {
+          s.x = canvas.width - s.size;
+          s.dx = -s.dx;
+        } else if (s.x + s.dx < s.size) {
+          s.x = s.size;
+          s.dx = -s.dx;
+        }
+
+        if (s.y + s.dy > canvas.height - s.size) {
+          s.y = canvas.height - s.size;
+          s.dy = -s.dy;
+        } else if (s.y + s.dy < s.size) {
+          s.y = s.size;
+          s.dy = -s.dy;
+        }
+
+        // 위치 갱신 및 그리기
+        s.x += s.dx;
+        s.y += s.dy;
+        drawShape(s);
+      });
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+
+</body>
+</html>
